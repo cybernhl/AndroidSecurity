@@ -10,4 +10,7 @@ public class Security {
     }
 
     public static native String getSecret();
+
+    //FIXME how return Integer Result ?
+    public static native String verifySignWithFlavorBuildType(String value);
 }

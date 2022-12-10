@@ -5,6 +5,8 @@ import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.util.Log;
 import android.widget.TextView;
 
 public class MainActivity extends AppCompatActivity {
@@ -19,6 +21,9 @@ public class MainActivity extends AppCompatActivity {
 
         TextView secret = (TextView) findViewById(R.id.text_secret);
         secret.setText(Security.getSecret());
+        String value =  BuildConfig.FLAVOR +BuildConfig.BUILD_TYPE;
+        String ndkValue = Security.verifySignWithFlavorBuildType(value );
+        Log.e("SSS","Show rrr : "+ndkValue);
     }
 
     /**
