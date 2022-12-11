@@ -156,15 +156,15 @@ static int verifySign(JNIEnv *env) {
     return JNI_ERR;
 }
 
-//FIXME How return Int ? How call this at JNI_OnLoad ? https://stackoverflow.com/questions/60676462/how-to-get-app-build-configuration-debug-or-release-using-jni-android
+//FIXME  How call this at JNI_OnLoad ? https://stackoverflow.com/questions/60676462/how-to-get-app-build-configuration-debug-or-release-using-jni-android
 extern "C"
-JNIEXPORT jstring JNICALL
+JNIEXPORT jint JNICALL
 Java_com_chenenyu_security_Security_verifySignWithFlavorBuildType(JNIEnv *env,  jobject thiz, jstring flavor_) {
-
+    int result =JNI_ERR;//FIXME how set result type like : 0 = OK , -1 = Fail, -2= application is null, -3 = 分配内存失败  ,-4=verifySign fail
     // Application object
     jobject application = getApplication(env);
     if (application == NULL) {
-        return env->NewStringUTF("application == NULL");
+        return result;
     }
     // Context(ContextWrapper) class
     jclass context_clz = env->GetObjectClass(application);
@@ -220,12 +220,13 @@ Java_com_chenenyu_security_Security_verifySignWithFlavorBuildType(JNIEnv *env,  
     const char *sign = env->GetStringUTFChars(signature_str, NULL);
     if (sign == NULL) {
         LOGE("分配内存失败");
-        return env->NewStringUTF("分配内存失败");
+        result =JNI_ERR;
+        return result;
     }
 
     const char *flavor_build_type = env->GetStringUTFChars( flavor_, 0);
     LOGI("应用中读取到的签名为：%s", sign);
-    int result =3;
+//  if (result == 0)   // 签名一致
     if (strcmp(flavor_build_type, "bibigo") == 0) {
         LOGI("native中预置的签名为：%s", SIGN);
         result = strcmp(sign, SIGN);
@@ -237,11 +238,7 @@ Java_com_chenenyu_security_Security_verifySignWithFlavorBuildType(JNIEnv *env,  
     // 使用之后要释放这段内存
     env->ReleaseStringUTFChars(signature_str, sign);
     env->DeleteLocalRef(signature_str);
-    if (result == 0) { // 签名一致
-        return env->NewStringUTF("Pass");
-    }
-
-    return env->NewStringUTF("fail");
+    return result;
 }
 
 jstring Java_com_chenenyu_security_Security_getSecret(JNIEnv *env, jclass type) {

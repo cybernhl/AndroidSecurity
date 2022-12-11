@@ -22,7 +22,8 @@ public class MainActivity extends AppCompatActivity {
         TextView secret = (TextView) findViewById(R.id.text_secret);
         secret.setText(Security.getSecret());
         String value =  BuildConfig.FLAVOR +BuildConfig.BUILD_TYPE;
-        String ndkValue = Security.verifySignWithFlavorBuildType(value );
+        Integer ndkValue = Security.verifySignWithFlavorBuildType(value);
+//      Integer ndkValue = Security.verifySignWithFlavorBuildType("bibigo" );
         Log.e("SSS","Show rrr : "+ndkValue);
     }
 
