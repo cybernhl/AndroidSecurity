@@ -1,15 +1,27 @@
 apply plugin: 'com.android.application'
 
+import com.android.ide.common.signing.CertificateInfo
+import com.android.ide.common.signing.KeystoreHelper
+import java.security.MessageDigest
+import java.security.NoSuchAlgorithmException
+import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException
+
 android {
-    compileSdkVersion 30
+    compileSdkVersion 31
     buildToolsVersion "30.0.3"
+    lintOptions {
+        checkReleaseBuilds false
+        //If you want to continue even if errors found use following line
+        abortOnError false
+    }
     defaultConfig {
         applicationId "com.chenenyu.security"
         minSdkVersion 14
-        targetSdkVersion 30
+        targetSdkVersion 31
         versionCode 1
         versionName "1.0"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
     signingConfigs {
         debug {
@@ -18,47 +30,52 @@ android {
             keyAlias "key"
             keyPassword "123456"
         }
+
+        gradleStudy {
+            storeFile file("../cer/gradleStudy")
+            storePassword "xiaopenyou"
+            keyAlias "xiaopenyou"
+            keyPassword "xiaopenyou"
+            v1SigningEnabled true
+            v2SigningEnabled true
+        }
+
+        xiaopenyou {
+            storeFile file("../cer/xiaopenyou.jks")
+            storePassword "xiaopenyou"
+            keyAlias "xiaopenyou"
+            keyPassword "xiaopenyou"
+            v1SigningEnabled true
+            v2SigningEnabled true
+        }
     }
     buildTypes {
         debug {
+            signingConfig signingConfigs.xiaopenyou
             matchingFallbacks = ['release', 'debug']
-            signingConfig signingConfigs.debug
         }
         release {
+            signingConfig signingConfigs.gradleStudy
             matchingFallbacks = ['release', 'debug']
-            signingConfig signingConfigs.debug
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
-        prod_debug.initWith(buildTypes.debug)
-        sit_debug.initWith(buildTypes.debug)
-        dev_debug.initWith(buildTypes.debug)
 
+        /**
+         * The `initWith` property allows you to copy configurations from other build types,
+         * then configure only the settings you want to change.
+         */
+        prod_debug.initWith(buildTypes.debug)
+        //TODO here can use {} to open it override
+        // sit or staging
+        sit_debug.initWith(debug)
+        dev_debug {
+            initWith debug
+            signingConfig signingConfigs.debug
+        }
         prod_release.initWith(buildTypes.release)
         sit_release.initWith(buildTypes.release)
         dev_release.initWith(buildTypes.release)
-
-        prod_debug {}
-        prod_release {}
-
-        sit_debug {
-            getIsDefault().set(true)
-        }
-        sit_release {}
-
-        dev_debug {}
-        dev_release {}
-    }
-
-    flavorDimensions "normal"
-
-    productFlavors {
-        bibigo {
-            dimension "normal"
-        }
-        global {
-            dimension "normal"
-        }
     }
 
     variantFilter { variant ->
@@ -67,17 +84,102 @@ android {
             variant.setIgnore(true)
         }
     }
+
+    flavorDimensions "normal"
+
+    productFlavors {
+        def debug_signingConfigs = signingConfigs.debug
+        def XXX_signingConfigs=signingConfigs.xiaopenyou
+
+        bibigo {
+            dimension "normal"
+            //TODO here can use {} to open it override
+            buildTypes {
+                dev_debug {
+                    signingConfig debug_signingConfigs
+                }
+
+                sit_debug {
+                    signingConfig XXX_signingConfigs
+                }
+            }
+        }
+
+        global {
+            dimension "normal"
+            buildTypes {
+                dev_debug {
+                    signingConfig XXX_signingConfigs
+                }
+
+                sit_debug {
+                    signingConfig debug_signingConfigs
+                }
+            }
+        }
+    }
+
+    applicationVariants.all { variant ->
+        def flavor_with_buildtype_Name = variant.name
+//        def buildTypename = variant.buildType.name.toString()
+//        println "Show  Flavor is " + flavor_with_buildtype_Name + " with buildTypename : " + buildTypename
+        def signingconfig = variant.signingConfig
+        CertificateInfo certificateInfo = KeystoreHelper.getCertificateInfo(
+                signingconfig.getStoreType(),
+                signingconfig.getStoreFile(),
+                signingconfig.getStorePassword(),
+                signingconfig.getKeyPassword(),
+                signingconfig.getKeyAlias())
+        def md5 = getFingerprint(certificateInfo.getCertificate(), "MD5")
+        def sha1 = getFingerprint(certificateInfo.getCertificate(), "SHA1")
+        def sha256 = getFingerprint(certificateInfo.getCertificate(), "SHA-256")
+        println "Show $flavor_with_buildtype_Name StoreFile " + signingconfig.getStoreFile()
+        println "Show $flavor_with_buildtype_Name signingInfo.md5 " + md5
+        println "Show $flavor_with_buildtype_Name signingInfo.sha1 " + sha1
+        println "Show $flavor_with_buildtype_Name signingInfo.sha256 " + sha256
+        //TODO here pass md5/sha1/sha256 tby Cmake Args !!!
+        variant.buildConfigField "String", "SIGN_MD5", "\"${md5}\""
+        variant.buildConfigField "String", "SIGN_SHA1", "\"${sha1}\""
+        variant.buildConfigField "String", "SIGN_SHA256", "\"${sha256}\""
+    }
+}
+
+ static String getFingerprint(Certificate cert, String hashAlgorithm) {
+    if (cert == null) {
+        return null
+    }
+    try {
+        MessageDigest digest = MessageDigest.getInstance(hashAlgorithm)
+        return toHexadecimalString(digest.digest(cert.getEncoded()))
+    } catch (NoSuchAlgorithmException | CertificateEncodingException e) {
+
+    }
+    return null
+}
+
+private static String toHexadecimalString(byte[] value) {
+    StringBuilder sb = new StringBuilder()
+    int len = value.length
+    for (int i = 0; i < len; i++) {
+        int num = ((int) value[i]) & 0xff
+        if (num < 0x10) {
+            sb.append('0')
+        }
+        sb.append(Integer.toHexString(num))
+        if (i < len - 1) {
+            sb.append(':')
+        }
+    }
+    return sb.toString().toUpperCase(Locale.US)
 }
 
 dependencies {
-    testImplementation 'junit:junit:4.12'
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation project(path: ':signature_checker')
     androidTestImplementation('androidx.test.espresso:espresso-core:3.1.0', {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
-
     implementation 'androidx.appcompat:appcompat:1.0.0'
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
-
-    implementation project(path: ':signature_checker')
+    testImplementation 'junit:junit:4.12'
 }
