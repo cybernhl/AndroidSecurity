@@ -24,7 +24,7 @@ public class MainActivity extends AppCompatActivity {
         String value =  BuildConfig.FLAVOR +BuildConfig.BUILD_TYPE;
         Integer ndkValue = Security.verifySignWithFlavorBuildType(value);
 //      Integer ndkValue = Security.verifySignWithFlavorBuildType("bibigo" );
-        Log.e("SSS","Show rrr : "+ndkValue);
+        Log.e("MainActivity","Show NDK Report  : "+ndkValue);
     }
 
     /**
