@@ -3,6 +3,8 @@ apply plugin: 'com.android.library'
 android {
     compileSdkVersion 30
     buildToolsVersion "30.0.3"
+    def appProject = project(':app')
+    println "Show  Application : $appProject"
     defaultConfig {
         minSdkVersion 14
         targetSdkVersion 30
@@ -11,9 +13,17 @@ android {
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         externalNativeBuild {
             cmake {
+                def MY_APP_SHA_TYPE =appProject.ext.MY_APP_SHA_TYPE
+                def MY_APP_SHA_VALUE = appProject.ext.MY_APP_SHA_VALUE
+                def MY_APP_SHA_VALUES = appProject.ext.MY_APP_SHA_VALUES
+                println "Show  Application value : $MY_APP_SHA_VALUE"
+                MY_APP_SHA_VALUES.each { key,value ->
+                    println "Show  Application key : $key , value :$value"
+                }
+
                 arguments "-DSALT=\"20221217FIRST_PASS\"",
-                        "-DSIGN_SHA_TYPE=\"SHA-256\"",
-                        "-DSIGN_SHA=\"2C:8C:82:5C:D4:54:50:E9:2E:5E:BA:90:93:1F:95:A0:43:B6:12:66:BE:E9:36:EE:03:E3:84:13:3B:D7:12:16\""
+                        "-DSIGN_SHA_TYPE=\"${MY_APP_SHA_TYPE}\"",
+                        "-DSIGN_SHA=\"${MY_APP_SHA_VALUE}\""
             }
         }
     }

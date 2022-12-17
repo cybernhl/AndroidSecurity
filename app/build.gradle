@@ -7,6 +7,13 @@ import java.security.NoSuchAlgorithmException
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException
 
+ext {
+    MY_APP_SHA_TYPE = ""
+    MY_APP_SHA_VALUE = ""
+    MY_APP_SHA_VALUES = new HashMap<String,String>()
+    FLAVORS = ['bibigo', 'global']
+}
+
 android {
     compileSdkVersion 31
     buildToolsVersion "30.0.3"
@@ -86,6 +93,9 @@ android {
         variant.buildConfigField "String", "SIGN_MD5", "\"${md5}\""
         variant.buildConfigField "String", "SIGN_SHA1", "\"${sha1}\""
         variant.buildConfigField "String", "SIGN_SHA256", "\"${sha256}\""
+        MY_APP_SHA_TYPE = "SHA1"
+        MY_APP_SHA_VALUE = sha1
+        MY_APP_SHA_VALUES.put(flavor_with_buildtype_Name,sha1)
     }
 }
 
