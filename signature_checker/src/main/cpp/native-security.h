@@ -30,6 +30,8 @@ char *jlong2char(JNIEnv *env, jlong number);
 // char转为16进制
 char *char2Hex(unsigned char c, char* hexValue) ;
 
+jfieldID GetStaticFieldID(JNIEnv* env, jclass cls, const char* field_name, const char* field_signature);
+
 #ifdef __cplusplus
 }
 #endif

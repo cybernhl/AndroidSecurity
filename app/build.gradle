@@ -51,7 +51,7 @@ android {
     }
     buildTypes {
         debug {
-            signingConfig signingConfigs.xiaopenyou
+//            signingConfig signingConfigs.xiaopenyou
             matchingFallbacks = ['release', 'debug']
         }
         release {
@@ -59,63 +59,6 @@ android {
             matchingFallbacks = ['release', 'debug']
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-        }
-
-        /**
-         * The `initWith` property allows you to copy configurations from other build types,
-         * then configure only the settings you want to change.
-         */
-        prod_debug.initWith(buildTypes.debug)
-        //TODO here can use {} to open it override
-        // sit or staging
-        sit_debug.initWith(debug)
-        dev_debug {
-            initWith debug
-            signingConfig signingConfigs.debug
-        }
-        prod_release.initWith(buildTypes.release)
-        sit_release.initWith(buildTypes.release)
-        dev_release.initWith(buildTypes.release)
-    }
-
-    variantFilter { variant ->
-        def buildTypename = variant.buildType.name.toString()
-        if (buildTypename.equals('release') || buildTypename.equals('debug')) {
-            variant.setIgnore(true)
-        }
-    }
-
-    flavorDimensions "normal"
-
-    productFlavors {
-        def debug_signingConfigs = signingConfigs.debug
-        def XXX_signingConfigs=signingConfigs.xiaopenyou
-
-        bibigo {
-            dimension "normal"
-            //TODO here can use {} to open it override
-            buildTypes {
-                dev_debug {
-                    signingConfig debug_signingConfigs
-                }
-
-                sit_debug {
-                    signingConfig XXX_signingConfigs
-                }
-            }
-        }
-
-        global {
-            dimension "normal"
-            buildTypes {
-                dev_debug {
-                    signingConfig XXX_signingConfigs
-                }
-
-                sit_debug {
-                    signingConfig debug_signingConfigs
-                }
-            }
         }
     }
 
@@ -130,9 +73,11 @@ android {
                 signingconfig.getStorePassword(),
                 signingconfig.getKeyPassword(),
                 signingconfig.getKeyAlias())
+
         def md5 = getFingerprint(certificateInfo.getCertificate(), "MD5")
         def sha1 = getFingerprint(certificateInfo.getCertificate(), "SHA1")
         def sha256 = getFingerprint(certificateInfo.getCertificate(), "SHA-256")
+        println "Show $flavor_with_buildtype_Name use  signing is " + signingconfig.name
         println "Show $flavor_with_buildtype_Name StoreFile " + signingconfig.getStoreFile()
         println "Show $flavor_with_buildtype_Name signingInfo.md5 " + md5
         println "Show $flavor_with_buildtype_Name signingInfo.sha1 " + sha1
