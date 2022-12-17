@@ -22,6 +22,10 @@ const char* CSALT = ISALT;
 
 #endif
 
+#ifdef FLAVOR_SHAS
+  std::cout << "FLAVOR_SHAS: " << FLAVOR_SHAS << std::endl;
+#endif
+
 #define HEX_VALUES "0123456789ABCDEF"
 
 static int verifySignSHA(JNIEnv *env,char *type) ;

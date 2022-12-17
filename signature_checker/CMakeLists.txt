@@ -46,6 +46,13 @@ target_link_libraries( # Specifies the target library.
 add_definitions(-DISALT=${SALT})
 add_definitions(-DITYPE=${SIGN_SHA_TYPE})
 add_definitions(-DISHA=${SIGN_SHA})
+# 取得 FlavorSHAS 的值
+string(REPLACE ";" " " FLAVOR_SHAS "${FLAVOR_SHAS}")
+
+# 將 FlavorSHAS 傳遞到 C++ 代碼中
+add_compile_definitions(FLAVOR_SHAS="${FLAVOR_SHAS}")
+
+
 message(WARNING "Show  message ...Get SALT ,${SALT}")
 message(WARNING "Show  message ...Get TYPE ,${SIGN_SHA_TYPE}")
 message(WARNING "Show  message ...Get SHA ,${SIGN_SHA}")

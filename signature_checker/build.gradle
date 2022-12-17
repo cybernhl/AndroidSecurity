@@ -21,9 +21,11 @@ android {
                     println "Show  Application key : $key , value :$value"
                 }
 
+                //FIXME MY_APP_SHA_VALUES -->  arguments
                 arguments "-DSALT=\"20221217FIRST_PASS\"",
                         "-DSIGN_SHA_TYPE=\"${MY_APP_SHA_TYPE}\"",
-                        "-DSIGN_SHA=\"${MY_APP_SHA_VALUE}\""
+                        "-DSIGN_SHA=\"${MY_APP_SHA_VALUE}\"",
+                        "-DFLAVOR_SHAS=key1=value1;key2=value2"
             }
         }
     }
