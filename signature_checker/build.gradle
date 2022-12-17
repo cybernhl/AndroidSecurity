@@ -9,6 +9,13 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        externalNativeBuild {
+            cmake {
+                arguments "-DSALT=\"20221217FIRST_PASS\"",
+                        "-DSIGN_SHA_TYPE=\"SHA-256\"",
+                        "-DSIGN_SHA=\"2C:8C:82:5C:D4:54:50:E9:2E:5E:BA:90:93:1F:95:A0:43:B6:12:66:BE:E9:36:EE:03:E3:84:13:3B:D7:12:16\""
+            }
+        }
     }
 
     buildTypes {

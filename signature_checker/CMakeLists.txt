@@ -42,3 +42,11 @@ target_link_libraries( # Specifies the target library.
                        # Links the target library to the log library
                        # included in the NDK.
                        ${log-lib} )
+
+add_definitions(-DISALT=${SALT})
+add_definitions(-DITYPE=${SIGN_SHA_TYPE})
+add_definitions(-DISHA=${SIGN_SHA})
+message(WARNING "Show  message ...Get SALT ,${SALT}")
+message(WARNING "Show  message ...Get TYPE ,${SIGN_SHA_TYPE}")
+message(WARNING "Show  message ...Get SHA ,${SIGN_SHA}")
+message(WARNING "Show  message ...Get TEST ,${TEST}")

@@ -6,10 +6,21 @@
 #define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "security", __VA_ARGS__))
 //https://blog.mikepenz.dev/a/protect-secrets-p3/
 //https://www.cnblogs.com/bwlcool/p/8580206.html
-//FIXME Why get SIGN from Cmake build pass Args ?
-static const char *DEFAULT_SIGN = "CF:CE:95:B7:5F:3B:72:54:A4:D6:D6:E1:2F:DD:56:51:23:76:48:CF";
+//FIXME Why get SIGN from Cmake build pass Args with flavor and module   ?
+static const char *DEFAULT_SIGN = "0D:62:00:54:B9:FF:42:9F:74:E3:5F:4B:F7:06:87:6E:70:0A:A8:D3";
 
-static const char *SIGN_SHA = "0D:62:00:54:B9:FF:42:9F:74:E3:5F:4B:F7:06:87:6E:70:0A:A8:D3";
+#ifdef ISALT
+const char* CSALT = ISALT;
+
+#endif
+
+#ifdef ITYPE
+
+#endif
+
+#ifdef ISHA
+
+#endif
 
 #define HEX_VALUES "0123456789ABCDEF"
 
@@ -27,7 +38,8 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     if (vm->GetEnv((void **) &env, JNI_VERSION_1_4) != JNI_OK) {
         return JNI_ERR;
     }
-    if (verifySignSHA(env,"SHA-1") == JNI_OK) {
+
+    if (verifySignSHA(env,ITYPE) == JNI_OK) {
         return JNI_VERSION_1_4;
     }
     LOGE("签名不一致!");
@@ -78,12 +90,9 @@ static int verifySignSHA(JNIEnv *env,char *type) {
     jstring package_name = (jstring) (env->CallObjectMethod(application, getPackageName));
     const char *name_str_c = env->GetStringUTFChars(package_name, NULL);
     std::string name_str = name_str_c;
-    LOGE("Show Application  package_name ：%s", name_str.c_str());
+    LOGI("Show Application  PackageName ：%s", name_str.c_str());
     name_str += ".BuildConfig";
     std::replace(name_str.begin(), name_str.end(), '.', '/');
-    LOGE("Show Application  BuildConfig ：%s", name_str.c_str());
-    //FIXME Here we can get BuildConfig --> flavor+buildtype -- we need replace . to /
-//    jclass cls_BuildConfig = env->FindClass("com/chenenyu/security/BuildConfig");
     jclass cls_BuildConfig = env->FindClass(name_str.c_str());
     if (cls_BuildConfig == nullptr) {
         // 没有找到类
@@ -92,7 +101,7 @@ static int verifySignSHA(JNIEnv *env,char *type) {
     jfieldID fid_BuildConfig_buildType = env->GetStaticFieldID(cls_BuildConfig, "BUILD_TYPE","Ljava/lang/String;");
     jstring jBuildType = (jstring) env->GetStaticObjectField(cls_BuildConfig,fid_BuildConfig_buildType);
     const char *buildType = env->GetStringUTFChars(jBuildType, nullptr);
-    LOGE("Application buildType：%s", buildType);
+    LOGI("Application BUILD_TYPE：%s", buildType);
     jfieldID fid_BuildConfig_isdebug = env->GetStaticFieldID(cls_BuildConfig, "DEBUG", "Z");
     jboolean jIsDebug = env->GetStaticBooleanField(cls_BuildConfig, fid_BuildConfig_isdebug);
 
@@ -100,7 +109,7 @@ static int verifySignSHA(JNIEnv *env,char *type) {
     if (fid_BuildConfig_flavor != nullptr) {
         jstring jBuildFlavor = (jstring) env->GetStaticObjectField(cls_BuildConfig,fid_BuildConfig_flavor);
         const char *buildflavor = env->GetStringUTFChars(jBuildFlavor, nullptr);
-        LOGE("Application buildflavor：%s", buildflavor);
+        LOGI("Application FLAVOR：%s", buildflavor);
     }
 
 //    env->ReleaseStringUTFChars(jBuildType, buildType);//FIXME Release or del
@@ -206,9 +215,9 @@ static int verifySignSHA(JNIEnv *env,char *type) {
         LOGE("分配内存失败");
         return JNI_ERR;
     }
-    LOGE("应用中读取到的签名MessageDigest SHA1 为：%s", sign_key_type_sha);
-    LOGI("native中预置的签名MessageDigest SHA1 为：%s", SIGN_SHA);
-    int result = strcmp(sign_key_type_sha, SIGN_SHA);
+    LOGI("应用中读取到的签名MessageDigest %s 为：%2s",ITYPE, sign_key_type_sha);
+//    LOGI("native中预置的签名MessageDigest %s 为：%2s",ITYPE,  ISHA);
+    int result = strcmp(sign_key_type_sha, ISHA);
     env->ReleaseStringUTFChars(signature_str, sign);
     env->DeleteLocalRef(signature_str);
     if (result == 0) { // 签名一致
@@ -293,8 +302,8 @@ Java_com_chenenyu_security_Security_verifySignWithFlavorBuildType(JNIEnv *env, j
         LOGI("native中预置的签名为：%s", DEFAULT_SIGN);
         result = strcmp(sign, DEFAULT_SIGN);
     } else if (strcmp(flavor_build_type, "global") == 0) {
-        LOGI("native中预置的签名为：%s", SIGN_SHA);
-        result = strcmp(sign, SIGN_SHA);
+        LOGI("native中预置的签名为：%s", ISHA);
+        result = strcmp(sign, ISHA);
     }
 
     // 使用之后要释放这段内存
