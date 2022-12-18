@@ -42,6 +42,8 @@ android {
         cmake {
             path "CMakeLists.txt"
         }
+        beforeEvaluate { println("Printed at the Top.")  }
+        afterEvaluate { println("Printed before compiling.") }
     }
 }
 
