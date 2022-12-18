@@ -58,11 +58,10 @@ android {
     }
     buildTypes {
         debug {
-//            signingConfig signingConfigs.xiaopenyou
             matchingFallbacks = ['release', 'debug']
         }
         release {
-            signingConfig signingConfigs.gradleStudy
+            signingConfig null
             matchingFallbacks = ['release', 'debug']
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
@@ -74,28 +73,30 @@ android {
 //        def buildTypename = variant.buildType.name.toString()
 //        println "Show  Flavor is " + flavor_with_buildtype_Name + " with buildTypename : " + buildTypename
         def signingconfig = variant.signingConfig
-        CertificateInfo certificateInfo = KeystoreHelper.getCertificateInfo(
-                signingconfig.getStoreType(),
-                signingconfig.getStoreFile(),
-                signingconfig.getStorePassword(),
-                signingconfig.getKeyPassword(),
-                signingconfig.getKeyAlias())
+        if (signingconfig !=null){
+            def certificateInfo = KeystoreHelper.getCertificateInfo(
+                    signingconfig.getStoreType(),
+                    signingconfig.getStoreFile(),
+                    signingconfig.getStorePassword(),
+                    signingconfig.getKeyPassword(),
+                    signingconfig.getKeyAlias())
 
-        def md5 = getFingerprint(certificateInfo.getCertificate(), "MD5")
-        def sha1 = getFingerprint(certificateInfo.getCertificate(), "SHA1")
-        def sha256 = getFingerprint(certificateInfo.getCertificate(), "SHA-256")
-        println "Show $flavor_with_buildtype_Name use  signing is " + signingconfig.name
-        println "Show $flavor_with_buildtype_Name StoreFile " + signingconfig.getStoreFile()
-        println "Show $flavor_with_buildtype_Name signingInfo.md5 " + md5
-        println "Show $flavor_with_buildtype_Name signingInfo.sha1 " + sha1
-        println "Show $flavor_with_buildtype_Name signingInfo.sha256 " + sha256
-        //TODO here pass md5/sha1/sha256 tby Cmake Args !!!
-        variant.buildConfigField "String", "SIGN_MD5", "\"${md5}\""
-        variant.buildConfigField "String", "SIGN_SHA1", "\"${sha1}\""
-        variant.buildConfigField "String", "SIGN_SHA256", "\"${sha256}\""
-        MY_APP_SHA_TYPE = "SHA1"
-        MY_APP_SHA_VALUE = sha1
-        MY_APP_SHA_VALUES.put(flavor_with_buildtype_Name,sha1)
+            def md5 = getFingerprint(certificateInfo.getCertificate(), "MD5")
+            def sha1 = getFingerprint(certificateInfo.getCertificate(), "SHA1")
+            def sha256 = getFingerprint(certificateInfo.getCertificate(), "SHA-256")
+            println "Show $flavor_with_buildtype_Name use  signing is " + signingconfig.name
+            println "Show $flavor_with_buildtype_Name StoreFile " + signingconfig.getStoreFile()
+            println "Show $flavor_with_buildtype_Name signingInfo.md5 " + md5
+            println "Show $flavor_with_buildtype_Name signingInfo.sha1 " + sha1
+            println "Show $flavor_with_buildtype_Name signingInfo.sha256 " + sha256
+            //TODO here pass md5/sha1/sha256 tby Cmake Args !!!
+            variant.buildConfigField "String", "SIGN_MD5", "\"${md5}\""
+            variant.buildConfigField "String", "SIGN_SHA1", "\"${sha1}\""
+            variant.buildConfigField "String", "SIGN_SHA256", "\"${sha256}\""
+            MY_APP_SHA_TYPE = "SHA1"
+            MY_APP_SHA_VALUE = sha1
+            MY_APP_SHA_VALUES.put(flavor_with_buildtype_Name,sha1)
+        }
     }
 }
 
