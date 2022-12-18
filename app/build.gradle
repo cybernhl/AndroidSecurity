@@ -1,10 +1,12 @@
 apply plugin: 'com.android.application'
 
+//import  com.android.build.gradle.internal.tasks.SigningReportTask
+//import com.android.build.gradle.internal.dsl.SigningConfig
 import com.android.ide.common.signing.CertificateInfo
 import com.android.ide.common.signing.KeystoreHelper
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
-import java.security.cert.Certificate;
+import java.security.cert.Certificate
 import java.security.cert.CertificateEncodingException
 
 ext {
@@ -74,7 +76,7 @@ android {
 //        println "Show  Flavor is " + flavor_with_buildtype_Name + " with buildTypename : " + buildTypename
         def signingconfig = variant.signingConfig
         if (signingconfig !=null){
-            def certificateInfo = KeystoreHelper.getCertificateInfo(
+            CertificateInfo certificateInfo = KeystoreHelper.getCertificateInfo(
                     signingconfig.getStoreType(),
                     signingconfig.getStoreFile(),
                     signingconfig.getStorePassword(),
