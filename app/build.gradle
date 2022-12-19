@@ -1,21 +1,5 @@
 apply plugin: 'com.android.application'
 
-//import  com.android.build.gradle.internal.tasks.SigningReportTask
-//import com.android.build.gradle.internal.dsl.SigningConfig
-import com.android.ide.common.signing.CertificateInfo
-import com.android.ide.common.signing.KeystoreHelper
-import java.security.MessageDigest
-import java.security.NoSuchAlgorithmException
-import java.security.cert.Certificate
-import java.security.cert.CertificateEncodingException
-
-ext {
-    MY_APP_SHA_TYPE = ""
-    MY_APP_SHA_VALUE = ""
-    MY_APP_SHA_VALUES = new HashMap<String,String>()
-    FLAVORS = ['bibigo', 'global']
-}
-
 android {
     compileSdkVersion 31
     buildToolsVersion "30.0.3"
@@ -63,72 +47,38 @@ android {
             matchingFallbacks = ['release', 'debug']
         }
         release {
-            signingConfig null
+            signingConfig signingConfigs.gradleStudy
             matchingFallbacks = ['release', 'debug']
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+//        prod_debug.initWith(buildTypes.debug)
+//        //TODO here can use {} to open it override
+//        // sit or staging
+//        sit_debug.initWith(debug)
+//        dev_debug {
+//            initWith debug
+//            signingConfig signingConfigs.debug
+//        }
+//        prod_release.initWith(buildTypes.release)
+//        sit_release.initWith(buildTypes.release)
+//        dev_release.initWith(buildTypes.release)
     }
 
-    applicationVariants.all { variant ->
-        def flavor_with_buildtype_Name = variant.name
-//        def buildTypename = variant.buildType.name.toString()
-//        println "Show  Flavor is " + flavor_with_buildtype_Name + " with buildTypename : " + buildTypename
-        def signingconfig = variant.signingConfig
-        if (signingconfig !=null){
-            CertificateInfo certificateInfo = KeystoreHelper.getCertificateInfo(
-                    signingconfig.getStoreType(),
-                    signingconfig.getStoreFile(),
-                    signingconfig.getStorePassword(),
-                    signingconfig.getKeyPassword(),
-                    signingconfig.getKeyAlias())
-
-            def md5 = getFingerprint(certificateInfo.getCertificate(), "MD5")
-            def sha1 = getFingerprint(certificateInfo.getCertificate(), "SHA1")
-            def sha256 = getFingerprint(certificateInfo.getCertificate(), "SHA-256")
-            println "Show $flavor_with_buildtype_Name use  signing is " + signingconfig.name
-            println "Show $flavor_with_buildtype_Name StoreFile " + signingconfig.getStoreFile()
-            println "Show $flavor_with_buildtype_Name signingInfo.md5 " + md5
-            println "Show $flavor_with_buildtype_Name signingInfo.sha1 " + sha1
-            println "Show $flavor_with_buildtype_Name signingInfo.sha256 " + sha256
-            //TODO here pass md5/sha1/sha256 tby Cmake Args !!!
-            variant.buildConfigField "String", "SIGN_MD5", "\"${md5}\""
-            variant.buildConfigField "String", "SIGN_SHA1", "\"${sha1}\""
-            variant.buildConfigField "String", "SIGN_SHA256", "\"${sha256}\""
-            MY_APP_SHA_TYPE = "SHA1"
-            MY_APP_SHA_VALUE = sha1
-            MY_APP_SHA_VALUES.put(flavor_with_buildtype_Name,sha1)
-        }
-    }
-}
-
- static String getFingerprint(Certificate cert, String hashAlgorithm) {
-    if (cert == null) {
-        return null
-    }
-    try {
-        MessageDigest digest = MessageDigest.getInstance(hashAlgorithm)
-        return toHexadecimalString(digest.digest(cert.getEncoded()))
-    } catch (NoSuchAlgorithmException | CertificateEncodingException e) {
-
-    }
-    return null
-}
-
-private static String toHexadecimalString(byte[] value) {
-    StringBuilder sb = new StringBuilder()
-    int len = value.length
-    for (int i = 0; i < len; i++) {
-        int num = ((int) value[i]) & 0xff
-        if (num < 0x10) {
-            sb.append('0')
-        }
-        sb.append(Integer.toHexString(num))
-        if (i < len - 1) {
-            sb.append(':')
-        }
-    }
-    return sb.toString().toUpperCase(Locale.US)
+//    flavorDimensions "normal"
+//
+//    productFlavors {
+//
+//        bibigo {
+//            dimension "normal"
+//
+//        }
+//
+//        global {
+//            dimension "normal"
+//
+//        }
+//    }
 }
 
 dependencies {
