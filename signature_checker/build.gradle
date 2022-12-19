@@ -1,10 +1,27 @@
+//import  com.android.build.gradle.internal.tasks.SigningReportTask
+//import com.android.build.gradle.internal.dsl.SigningConfig
+import com.android.ide.common.signing.CertificateInfo
+import com.android.ide.common.signing.KeystoreHelper
+import java.security.MessageDigest
+import java.security.NoSuchAlgorithmException
+import java.security.cert.Certificate
+import java.security.cert.CertificateEncodingException
+
 apply plugin: 'com.android.library'
 
 android {
     compileSdkVersion 30
     buildToolsVersion "30.0.3"
-    def appProject = project(':app')
+    def project_name =""
+    def appProject = getApplicationProjectByName("app")
+    if (appProject == null) {
+        appProject = getFirstApplicationProject()
+    }
+
     println "Show  Application : $appProject"
+    def   APP_SHA_TYPE = "SHA-1"
+    def   APP_SHA_VALUE = ""
+    def   APP_SHA_VALUES = new HashMap<String,String>()
     defaultConfig {
         minSdkVersion 14
         targetSdkVersion 30
@@ -13,17 +30,54 @@ android {
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         externalNativeBuild {
             cmake {
-                def MY_APP_SHA_TYPE =appProject.ext.MY_APP_SHA_TYPE
-                def MY_APP_SHA_VALUE = appProject.ext.MY_APP_SHA_VALUE
-                def MY_APP_SHA_VALUES = appProject.ext.MY_APP_SHA_VALUES
-                println "Show  Application value : $MY_APP_SHA_VALUE"
-                MY_APP_SHA_VALUES.each { key,value ->
-                    println "Show  Application key : $key , value :$value"
+                if (appProject != null) {
+                    project_name =appProject.name
+                    appProject.android.applicationVariants.all { variant ->
+
+//                        def buildTypename = variant.buildType.name.toString()
+//                        println "Show  Flavor is " + flavor_with_buildtype_Name + " with buildTypename : " + buildTypename
+                        def signingconfig = variant.signingConfig
+                        if (signingconfig !=null){
+                            def flavor_with_buildtype_Name = variant.name
+                            CertificateInfo certificateInfo = KeystoreHelper.getCertificateInfo(
+                                    signingconfig.getStoreType(),
+                                    signingconfig.getStoreFile(),
+                                    signingconfig.getStorePassword(),
+                                    signingconfig.getKeyPassword(),
+                                    signingconfig.getKeyAlias())
+                            def md5 = getFingerprint(certificateInfo.getCertificate(), "MD5")
+                            def sha1 = getFingerprint(certificateInfo.getCertificate(), "SHA1")
+                            def sha256 = getFingerprint(certificateInfo.getCertificate(), "SHA-256")
+                            println "Show $flavor_with_buildtype_Name use  signing is " + signingconfig.name
+                            println "Show $flavor_with_buildtype_Name StoreFile " + signingconfig.getStoreFile()
+                            println "Show $flavor_with_buildtype_Name signingInfo.md5 " + md5
+                            println "Show $flavor_with_buildtype_Name signingInfo.sha1 " + sha1
+                            println "Show $flavor_with_buildtype_Name signingInfo.sha256 " + sha256
+                            APP_SHA_VALUE = sha1
+                            APP_SHA_VALUES.put(flavor_with_buildtype_Name,sha1)
+                        }
+                    }
                 }
 
+                APP_SHA_VALUES.each { key, value ->
+                    println "Show ${project_name} Application Flavor_BuildType = $key , sign_value = $value"
+                }
+                //convert it to a string in the format key1=value1;key2=value2;...:
+                def flavor_build_shas = APP_SHA_VALUES.collect { key, value -> "${key}=${value}" }.join(';')
+
+//                def flavor_build_shas = ""
+//                for (key in APP_FLAVORS_SHA_VALUES.keySet()) {
+//                    flavor_build_shas += "$key:${APP_FLAVORS_SHA_VALUES[key]};"
+//                }
+
+
+//                println "Show flavor_build_shas $flavor_build_shas"
+
                 arguments "-DSALT=\"20221217FIRST_PASS\"",
-                        "-DSIGN_SHA_TYPE=\"${MY_APP_SHA_TYPE}\"",
-                        "-DSIGN_SHA=\"${MY_APP_SHA_VALUE}\""
+                        "-DSIGN_SHA_TYPE=\"${APP_SHA_TYPE}\"",
+                        "-DSIGN_SHA=\"${APP_SHA_VALUE}\"",
+                        "-DFLAVOR_SHAS=\"${flavor_build_shas}\""
+//                        "-DFLAVOR_SHAS=${APP_SHA_VALUES}"
             }
         }
     }
@@ -42,9 +96,59 @@ android {
         cmake {
             path "CMakeLists.txt"
         }
-        beforeEvaluate { println("Printed at the Top.")  }
+        beforeEvaluate { println("Printed at the Top.") }
         afterEvaluate { println("Printed before compiling.") }
     }
+}
+
+Project getFirstApplicationProject() {
+    Project target_project = null
+    this.getParent().getChildProjects().each { key, value ->
+        def check = getApplicationProjectByName(value.name)
+        if (check != null) {
+            target_project = check
+        }
+    }
+    return target_project
+}
+
+Project getApplicationProjectByName(String name) {
+    println "Show  input name  : $name"
+    Project target_project = null
+    def check = project(":${name}")
+    if (check != null && check.getPlugins().hasPlugin('com.android.application')) {
+        target_project = check
+    }
+    return target_project
+}
+
+static String getFingerprint(Certificate cert, String hashAlgorithm) {
+    if (cert == null) {
+        return null
+    }
+    try {
+        MessageDigest digest = MessageDigest.getInstance(hashAlgorithm)
+        return toHexadecimalString(digest.digest(cert.getEncoded()))
+    } catch (NoSuchAlgorithmException | CertificateEncodingException e) {
+
+    }
+    return null
+}
+
+private static String toHexadecimalString(byte[] value) {
+    StringBuilder sb = new StringBuilder()
+    int len = value.length
+    for (int i = 0; i < len; i++) {
+        int num = ((int) value[i]) & 0xff
+        if (num < 0x10) {
+            sb.append('0')
+        }
+        sb.append(Integer.toHexString(num))
+        if (i < len - 1) {
+            sb.append(':')
+        }
+    }
+    return sb.toString().toUpperCase(Locale.US)
 }
 
 dependencies {
@@ -52,5 +156,5 @@ dependencies {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
     testImplementation 'junit:junit:4.12'
-    implementation  fileTree(dir: 'libs', include: ['*.jar'])
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
 }
