@@ -65,20 +65,29 @@ android {
 //        dev_release.initWith(buildTypes.release)
     }
 
-//    flavorDimensions "normal"
-//
-//    productFlavors {
-//
-//        bibigo {
-//            dimension "normal"
-//
+    flavorDimensions "site"
+    //    flavorDimensions "site", "env"
+    productFlavors {
+        bibigo {
+            dimension "site"
+        }
+
+        global {
+            dimension "site"
+        }
+
+//        dev {
+//            dimension "env"
 //        }
 //
-//        global {
-//            dimension "normal"
-//
+//        sit {
+//            dimension "env"
 //        }
-//    }
+//
+//        prod {
+//            dimension "env"
+//        }
+    }
 }
 
 dependencies {
