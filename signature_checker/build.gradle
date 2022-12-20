@@ -18,7 +18,7 @@ android {
         appProject = getFirstApplicationProject()
     }
 
-    println "Show  Application : $appProject"
+//    println "Show  Application : $appProject"
     def   APP_SHA_TYPE = "SHA-1"
     def   APP_SHA_VALUE = ""
     def   APP_SHA_VALUES = new HashMap<String,String>()
@@ -33,7 +33,6 @@ android {
                 if (appProject != null) {
                     project_name =appProject.name
                     appProject.android.applicationVariants.all { variant ->
-
 //                        def buildTypename = variant.buildType.name.toString()
 //                        println "Show  Flavor is " + flavor_with_buildtype_Name + " with buildTypename : " + buildTypename
                         def signingconfig = variant.signingConfig
@@ -60,19 +59,15 @@ android {
                 }
 
                 APP_SHA_VALUES.each { key, value ->
-                    println "Show ${project_name} Application Flavor_BuildType = $key , sign_value = $value"
+                    println "Show Application ${project_name}  Flavor_BuildType = $key , sign_value = $value"
                 }
-                //convert it to a string in the format key1=value1;key2=value2;...:
-                def flavor_build_shas = APP_SHA_VALUES.collect { key, value -> "${key}=${value}" }.join(';')
-
+                //TODO note convert it to a string in the format key1=value1;key2=value2;...: here do not use ";" & "\n" & ":" ,if use will let cmakelists & c++ fail
+                def flavor_build_shas = APP_SHA_VALUES.collect { key, value -> "${key}=${value}" }.join('\t')
 //                def flavor_build_shas = ""
 //                for (key in APP_FLAVORS_SHA_VALUES.keySet()) {
 //                    flavor_build_shas += "$key:${APP_FLAVORS_SHA_VALUES[key]};"
 //                }
-
-
-//                println "Show flavor_build_shas $flavor_build_shas"
-
+//              println "Show all SHAs String  !!   $flavor_build_shas"
                 arguments "-DSALT=\"20221217FIRST_PASS\"",
                         "-DSIGN_SHA_TYPE=\"${APP_SHA_TYPE}\"",
                         "-DSIGN_SHA=\"${APP_SHA_VALUE}\"",

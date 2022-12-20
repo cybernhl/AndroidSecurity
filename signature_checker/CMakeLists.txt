@@ -52,7 +52,7 @@ add_definitions(-DISHA=${SIGN_SHA})
 #此外，請注意，在使用 CMake 的 add_definitions 命令時，您需要使用轉義字元（例如，\）來轉義冒號（:），以避免在 CMakeLists.txt 中出現語法錯誤。
 #string(REPLACE ";" " " FLAVOR_SHAS "${FLAVOR_SHAS}")
 # Convert the APP_FLAVORS_SHA_VALUE string to a map
-string(REPLACE ";" "\n" APP_FLAVORS_SHA_VALUE_TMP "${ARGS_APP_FLAVORS_SHA_VALUE}")
+#string(REPLACE ";" "\\" APP_FLAVORS_SHA_VALUE_TMP "${FLAVOR_SHAS}")
 #string(REPLACE ";" "\\;" FLAVOR_SHAS "${FLAVOR_SHAS}")
 #list(GET FLAVOR_SHAS 0 my_map_element)
 #string(REPLACE ":" "\\:" my_map_element "${my_map_element}")
@@ -61,9 +61,8 @@ string(REPLACE ";" "\n" APP_FLAVORS_SHA_VALUE_TMP "${ARGS_APP_FLAVORS_SHA_VALUE}
 #if ("${key}" STREQUAL "key1")
 #    message(STATUS "The value of key1 is: ${value}")
 #endif()
-#add_definitions(-DIFLAVOR_SHAS=${FLAVOR_SHAS})
+add_definitions(-DFLAVOR_SHAS=${FLAVOR_SHAS})
 
-add_definitions(-DIFLAVOR_SHAS=${APP_FLAVORS_SHA_VALUE_TMP})
 #add_definitions(-DIFLAVOR_TYPE_SHAS="${APP_FLAVORS_SHA_VALUES}")
 message(WARNING "Show  message ...Get SALT ,${SALT}")
 message(WARNING "Show  message ...Get TYPE ,${SIGN_SHA_TYPE}")
