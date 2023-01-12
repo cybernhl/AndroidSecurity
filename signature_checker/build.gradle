@@ -22,6 +22,10 @@ android {
     def   APP_SHA_TYPE = "SHA-1"
     def   APP_SHA_VALUE = ""
     def   APP_SHA_VALUES = new HashMap<String,String>()
+    def legacy_namespace = "com.limited.tech.dynamo.utils.secret"
+//    namespace "${legacy_namespace}"// only over agp 4.2.X
+//    legacy_namespace= namespace
+    println "Show  legacy_namespace  ${legacy_namespace}"
     defaultConfig {
         minSdkVersion 14
         targetSdkVersion 30
@@ -55,6 +59,19 @@ android {
                             APP_SHA_VALUE = sha1
                             APP_SHA_VALUES.put(flavor_with_buildtype_Name,sha1)
                         }
+                        variant.sourceSets.find {
+                            it.name == "main"
+                            if (it.name == "main") {
+                                def xml = new XmlParser(false, false).parse(file("${it.manifest.srcFile}"))
+                                String pkg = xml.@package
+                                legacy_namespace = pkg.toString()
+//                                println "Show  legacy_namespace  ${legacy_namespace}"
+                            }
+                            if (legacy_namespace == null) {
+                                //FIXME How get namespace (define at AGP 7.X)
+                                println "Show  legacy_namespace  is null !! "
+                            }
+                        }
                     }
                 }
 
@@ -71,8 +88,8 @@ android {
                 arguments "-DSALT=\"20221217FIRST_PASS\"",
                         "-DSIGN_SHA_TYPE=\"${APP_SHA_TYPE}\"",
                         "-DSIGN_SHA=\"${APP_SHA_VALUE}\"",
-                        "-DFLAVOR_SHAS=\"${flavor_build_shas}\""
-//                        "-DFLAVOR_SHAS=${APP_SHA_VALUES}"
+                        "-DFLAVOR_SHAS=\"${flavor_build_shas}\"",
+                        "-DTO_JNI_PACKAGE=\"${legacy_namespace}\""
             }
         }
     }
@@ -144,6 +161,32 @@ private static String toHexadecimalString(byte[] value) {
         }
     }
     return sb.toString().toUpperCase(Locale.US)
+}
+
+def showXML(File manifestFile) {
+    println("=== Show  manifestFile path : ${manifestFile}====")
+
+    ///这里第二个参数是 false ，所以 namespace 是展开的，所以下面不能用 androidSpace，而是用 nameTag
+    def xml = new XmlParser(false, false).parse(manifestFile)
+    String pkg = xml.@package
+    println("=============== Show  manifest package :  ${pkg} ===============")
+    println("=============== Show  manifest versionCode :  ${xml.@"android:versionCode"} ===============")
+    println("=============== Show  manifest versionName :  ${xml.@"android:versionName"} ===============")
+    xml."uses-sdk".each { p ->
+        println p.attribute("android:minSdkVersion")
+    }
+
+    xml."uses-permission".each { p ->
+        println p.attribute("android:name")
+    }
+    xml."application".activity.each {
+        String actName = it.'@android:name'
+
+        if (actName.substring(0, 1).equals('.')) {
+            actName = pkg + actName
+        }
+        println(actName)
+    }
 }
 
 dependencies {

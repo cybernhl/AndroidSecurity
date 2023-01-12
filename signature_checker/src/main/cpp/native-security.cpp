@@ -1,8 +1,9 @@
-#include <android/log.h>
 #include <jni.h>
-#include <map>
 #include <string>
+#include <android/log.h>
+#include <map>
 #include <sstream>
+#include <stdio.h>
 #include "native-security.h"
 #include <unordered_map>
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "security", __VA_ARGS__))
@@ -29,6 +30,17 @@ const char* CSALT = ISALT;
 #endif
 
 #define HEX_VALUES "0123456789ABCDEF"
+
+std::string initJavaBuildConfig() {
+    std::string package;
+#ifdef JAVA_BUILDCONFIG_PACKAGE
+    package = JAVA_BUILDCONFIG_PACKAGE;
+#endif
+    return package;
+}
+static const char *buildtype = nullptr;
+static const char *buildflavor = nullptr;
+static std::string flavorBuildType;
 
 std::map<std::string, std::string> AllSHAs;
 
@@ -130,12 +142,79 @@ jfieldID GetStaticFieldID(JNIEnv* env, jclass cls, const char* field_name, const
     return field_id;
 }
 
+const char *getBuildTypeVaule(JNIEnv *env) {
+    std::string name_str =initJavaBuildConfig();
+    name_str += ".BuildConfig";
+    std::replace(name_str.begin(), name_str.end(), '.', '/');
+    LOGI("Show Application  PackageName ：%s", name_str.c_str());
+    jclass cls_BuildConfig = env->FindClass(name_str.c_str());
+    if (cls_BuildConfig  == NULL) {
+        LOGE("cannot get BuildConfig" );
+        return nullptr;
+    }
+    jfieldID fid_BuildConfig_buildType = env->GetStaticFieldID(cls_BuildConfig, "BUILD_TYPE","Ljava/lang/String;");
+    jstring jBuildType = (jstring) env->GetStaticObjectField(cls_BuildConfig,fid_BuildConfig_buildType);
+//    env->DeleteLocalRef(application);
+//    env->DeleteLocalRef(context_clz);
+//    env->DeleteLocalRef(package_manager);
+//    env->DeleteLocalRef(package_manager_clz);
+//    env->DeleteLocalRef(package_name);
+//    env->DeleteLocalRef(cls_BuildConfig);
+//    env->DeleteLocalRef(jBuildType);//FIXME Hoe release?
+    return env->GetStringUTFChars(jBuildType, nullptr);
+}
+
+const char *getBuildflavorVaule(JNIEnv *env) {
+    std::string name_str =initJavaBuildConfig();
+    name_str += ".BuildConfig";
+    std::replace(name_str.begin(), name_str.end(), '.', '/');
+    LOGI("Show Application  PackageName ：%s", name_str.c_str());
+    jclass cls_BuildConfig = env->FindClass(name_str.c_str());
+    if (cls_BuildConfig == NULL) {
+        LOGE("cannot get BuildConfig" );
+        return nullptr;
+    }
+    jfieldID fid_BuildConfig_flavor = GetStaticFieldID(env, cls_BuildConfig, "FLAVOR","Ljava/lang/String;");
+//    env->DeleteLocalRef(application);
+//    env->DeleteLocalRef(context_clz);
+//    env->DeleteLocalRef(package_manager);
+//    env->DeleteLocalRef(package_manager_clz);
+//    env->DeleteLocalRef(package_name);
+//    env->DeleteLocalRef(cls_BuildConfig);
+    if (fid_BuildConfig_flavor != nullptr) {
+        jstring jBuildFlavor = (jstring) env->GetStaticObjectField(cls_BuildConfig, fid_BuildConfig_flavor);
+//        env->DeleteLocalRef(jBuildFlavor);//FIXME Hoe release?
+        return env->GetStringUTFChars(jBuildFlavor, nullptr);
+    } else {
+        return nullptr;
+    }
+}
+
 jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     JNIEnv *env = NULL;
     if (vm->GetEnv((void **) &env, JNI_VERSION_1_4) != JNI_OK) {
         return JNI_ERR;
     }
-
+    if (buildtype == nullptr) {
+        LOGI("buildtype is null ");
+        buildtype = getBuildTypeVaule(env);
+    }
+    LOGI("Show now buildtype is ：%s", buildtype);
+    std::string buildType(buildtype);
+    flavorBuildType = buildType;
+    LOGI("Show init FlavorBuildType is ：%s", flavorBuildType.c_str());
+    if (buildflavor == nullptr) {
+        LOGI("flavor is null ");
+        buildflavor = getBuildflavorVaule(env);
+    }
+    LOGI("Show now flavor is ：%s", buildflavor);
+    if (buildflavor != nullptr) {
+        std::transform(buildType.begin(), buildType.begin() + 1, buildType.begin(), ::toupper);
+        std::string buildFlavor = buildflavor;
+        flavorBuildType = buildFlavor + buildType;
+    }
+    LOGI("Show now FlavorBuildType is ：%s", flavorBuildType.c_str());
+    prepareSHA();
     if (verifySignSHA(env,ITYPE) == JNI_OK) {
         return JNI_VERSION_1_4;
     }
@@ -185,39 +264,6 @@ static int verifySignSHA(JNIEnv *env,char *type) {
                                                 "()Ljava/lang/String;");
     // call getPackageName() and cast from jobject to jstring 获取包名
     jstring package_name = (jstring) (env->CallObjectMethod(application, getPackageName));
-    const char *name_str_c = env->GetStringUTFChars(package_name, NULL);
-    std::string name_str = name_str_c;
-//    LOGI("Show Application  PackageName ：%s", name_str.c_str());
-    name_str += ".BuildConfig";
-    std::replace(name_str.begin(), name_str.end(), '.', '/');
-    jclass cls_BuildConfig = env->FindClass(name_str.c_str());
-    if (cls_BuildConfig == nullptr) {
-        // 没有找到类
-        return -1;
-    }
-    std::string flavorBuildType;
-    jfieldID fid_BuildConfig_buildType = env->GetStaticFieldID(cls_BuildConfig, "BUILD_TYPE","Ljava/lang/String;");
-    jstring jBuildType = (jstring) env->GetStaticObjectField(cls_BuildConfig,fid_BuildConfig_buildType);
-    const char *buildType_c = env->GetStringUTFChars(jBuildType, nullptr);
-//    LOGI("Application BUILD_TYPE：%s", buildType_c);
-    jfieldID fid_BuildConfig_isdebug = env->GetStaticFieldID(cls_BuildConfig, "DEBUG", "Z");
-    jboolean jIsDebug = env->GetStaticBooleanField(cls_BuildConfig, fid_BuildConfig_isdebug);
-    jfieldID fid_BuildConfig_flavor = GetStaticFieldID(env, cls_BuildConfig, "FLAVOR", "Ljava/lang/String;");
-    std::string buildType(buildType_c);
-    flavorBuildType = buildType;
-    if (fid_BuildConfig_flavor != nullptr) {
-        std::transform(buildType.begin(), buildType.begin() + 1, buildType.begin(), ::toupper);
-        jstring jBuildFlavor = (jstring) env->GetStaticObjectField(cls_BuildConfig,fid_BuildConfig_flavor);
-        const char *buildflavor_c = env->GetStringUTFChars(jBuildFlavor, nullptr);
-//        LOGI("Application FLAVOR：%s", buildflavor_c);
-        std::string buildflavor = buildflavor_c;
-        flavorBuildType = buildflavor + buildType;
-    }
-//    LOGE("Application FlavorWithBUILD_TYPE：%s", flavorBuildType.c_str());
-    prepareSHA();
-    const char* match_sha = matchSHAByFlavorBuildType(flavorBuildType.c_str());
-//    LOGE("Show match ：%s", match_sha );
-//    env->ReleaseStringUTFChars(jBuildType, buildType);//FIXME Release or del
     // PackageInfo object 获得应用包的信息
     jobject package_info = env->CallObjectMethod(package_manager, getPackageInfo, package_name, 64);
     // class PackageInfo 获得 PackageInfo 类
@@ -321,6 +367,8 @@ static int verifySignSHA(JNIEnv *env,char *type) {
         LOGE("分配内存失败");
         return JNI_ERR;
     }
+    const char* match_sha = matchSHAByFlavorBuildType(flavorBuildType.c_str());
+    //    LOGE("Show match ：%s", match_sha );
 //    LOGI("应用中读取到的签名MessageDigest %s 为：%2s",ITYPE, sign_key_type_sha);
 //    LOGI("native中预置的签名MessageDigest %s 为：%2s",ITYPE,  match_sha);
     int result = strcmp(sign_key_type_sha, match_sha);

@@ -9,7 +9,7 @@ android {
         abortOnError false
     }
     defaultConfig {
-        applicationId "com.chenenyu.security"
+        applicationId "com.chenenyu.security.by.applicationId"
         minSdkVersion 14
         targetSdkVersion 31
         versionCode 1

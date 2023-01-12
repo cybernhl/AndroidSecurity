@@ -20,7 +20,7 @@ public class MainActivity extends AppCompatActivity {
         sign.setText(getSign());
 
         TextView secret = (TextView) findViewById(R.id.text_secret);
-        secret.setText(Security.getSecret());
+        Security ss=new Security();
 //        String value =  BuildConfig.FLAVOR +BuildConfig.BUILD_TYPE;
 //        Integer ndkValue = Security.verifySignWithFlavorBuildType(value);
 ////      Integer ndkValue = Security.verifySignWithFlavorBuildType("bibigo" );
