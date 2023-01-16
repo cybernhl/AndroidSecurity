@@ -32,7 +32,7 @@ const char* CSALT = ISALT;
 
 static std::string application_namespace;
 
-std::string initJavaBuildConfig() {
+std::string prepareApplicationNameSpace() {
     std::string package;
 #ifdef JAVA_BUILDCONFIG_PACKAGE
     package = JAVA_BUILDCONFIG_PACKAGE;
