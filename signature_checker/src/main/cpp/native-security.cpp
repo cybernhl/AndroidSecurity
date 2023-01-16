@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include "native-security.h"
 #include <unordered_map>
+#include "base64.h"
+
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "security", __VA_ARGS__))
 #define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "security", __VA_ARGS__))
 //https://blog.piasy.com/2017/08/26/Verify-App-Signature-and-JNI-Error-Handling/index.html
@@ -23,13 +25,12 @@ const char* CSALT = ISALT;
 #ifdef ISHA
 #endif
 
-#ifdef FLAVOR_SHAS_MAP
-#endif
-
 #ifdef FLAVOR_SHAS
 #endif
 
 #define HEX_VALUES "0123456789ABCDEF"
+
+static std::string application_namespace;
 
 std::string initJavaBuildConfig() {
     std::string package;
@@ -38,36 +39,55 @@ std::string initJavaBuildConfig() {
 #endif
     return package;
 }
+
+static std::string buildconfig;
+
+static jclass BuildConfig;
+
+std::string prepareApplicationBuildConfig() {
+    if (application_namespace.empty()) {
+        application_namespace = initJavaBuildConfig();
+    }
+    std::string item = application_namespace;
+    item += ".BuildConfig";
+    std::replace(item.begin(), item.end(), '.', '/');
+    return item;
+}
+
 static const char *buildtype = nullptr;
 static const char *buildflavor = nullptr;
 static std::string flavorBuildType;
+std::unordered_map <std::string, std::string> AllSHAs;
 
-std::map<std::string, std::string> AllSHAs;
+static int verifySignSHA(JNIEnv *env, char *type);
 
-static int verifySignSHA(JNIEnv *env,char *type) ;
-
-void showAllSHA( ) {
-    for (const auto& kv : AllSHAs) {
-        LOGE("Show SHA map  %s 为：%2s", kv.first.c_str(),  kv.second .c_str());
-    }
-}
-
-void prepareSHA( ) {
-    // 使用 stringstream 和 getline 函数解析字符串
+std::unordered_map <std::string, std::string> prepareSHA() {
+    std::unordered_map <std::string, std::string> keys;
+#ifdef FLAVOR_SHAS
+//    LOGE("run prepareSHA " );
+    std::string decoded_BASE64_VALUES = base64_decode(FLAVOR_SHAS);
+//    LOGE("Show  base64_decode  VALUES  : %s\n", decoded_BASE64_VALUES.c_str());
+    //// 使用 stringstream 和 getline 函数解析字符串
     //TODO Note : split "\t" & "=" if change at gradle , here must change
-    std::stringstream ss(FLAVOR_SHAS);
-    std::string pair;
-    while (std::getline(ss, pair, '\t')) {
-        std::stringstream kv_ss(pair);
-        std::string key;
-        std::getline(kv_ss, key, '=');
-        std::string value;
-        std::getline(kv_ss, value, '=');
-        AllSHAs[key] = value;
+    std::stringstream ss(decoded_BASE64_VALUES);
+    std::string item;
+    while (std::getline(ss, item, '\t')) {
+        std::size_t pos = item.find('=');
+        std::string key = item.substr(0, pos);
+        std::string value = item.substr(pos+1);
+        keys[key] = value;
+    }
+#endif
+    return keys;
+}
+
+void showAllSHA() {
+    for (const auto &kv: AllSHAs) {
+        LOGE("Show  %s  with  SHA：%2s", kv.first.c_str(), kv.second.c_str());
     }
 }
 
-const char* matchSHAByFlavorBuildType(const char* flavorBuildType) {
+const char *matchSHAByFlavorBuildType(const char *flavorBuildType) {
     // 使用 find 函数查找 map 中的键
     auto it = AllSHAs.find(flavorBuildType);
     if (it != AllSHAs.end()) {
@@ -80,7 +100,7 @@ const char* matchSHAByFlavorBuildType(const char* flavorBuildType) {
 }
 
 // 定义一个名为 getJavaStringField 的函数，用于获取 Java 类中的字符串字段
-const char*  getJavaStringField(JNIEnv* env, jclass cls, const char* fieldName) {
+const char *getJavaStringField(JNIEnv *env, jclass cls, const char *fieldName) {
     // 获取字符串字段的字段 ID
     jfieldID fieldId = env->GetStaticFieldID(cls, fieldName, "Ljava/lang/String;");
     // 检查是否发生异常
@@ -91,9 +111,11 @@ const char*  getJavaStringField(JNIEnv* env, jclass cls, const char* fieldName) 
         return nullptr;
     }
     // 获取字符串字段的值
-    jstring jstr = (jstring) env->GetObjectField(cls, fieldId);
+    jstring
+    jstr = (jstring)
+    env->GetObjectField(cls, fieldId);
     // 将字符串字段的值转换为 char*
-    const char* str = env->GetStringUTFChars(jstr, nullptr);
+    const char *str = env->GetStringUTFChars(jstr, nullptr);
     // 返回 char*
     return str;
 }
@@ -117,7 +139,6 @@ char *jlong2char(JNIEnv *env, jlong number) {
     return chars;
 }
 
-
 char *char2Hex(unsigned char c, char *hexValue) {
     if (c < 16) {
         hexValue[0] = HEX_VALUES[0];
@@ -132,7 +153,8 @@ char *char2Hex(unsigned char c, char *hexValue) {
     return hexValue;
 }
 
-jfieldID GetStaticFieldID(JNIEnv* env, jclass cls, const char* field_name, const char* field_signature) {
+jfieldID
+GetStaticFieldID(JNIEnv *env, jclass cls, const char *field_name, const char *field_signature) {
     jfieldID field_id = env->GetStaticFieldID(cls, field_name, field_signature);
     if (env->ExceptionCheck()) {
         // 清除异常
@@ -143,17 +165,25 @@ jfieldID GetStaticFieldID(JNIEnv* env, jclass cls, const char* field_name, const
 }
 
 const char *getBuildTypeVaule(JNIEnv *env) {
-    std::string name_str =initJavaBuildConfig();
-    name_str += ".BuildConfig";
-    std::replace(name_str.begin(), name_str.end(), '.', '/');
-    LOGI("Show Application  PackageName ：%s", name_str.c_str());
-    jclass cls_BuildConfig = env->FindClass(name_str.c_str());
-    if (cls_BuildConfig  == NULL) {
-        LOGE("cannot get BuildConfig" );
+//    std::string name_str = initJavaBuildConfig();
+//    name_str += ".BuildConfig";
+//    std::replace(name_str.begin(), name_str.end(), '.', '/');
+//    LOGI("Show Application  PackageName ：%s", name_str.c_str());
+    if (buildconfig.empty()) {
+        buildconfig=prepareApplicationBuildConfig();
+    }
+    LOGI("Show Application  PackageName ：%s", buildconfig.c_str());
+//    jclass cls_BuildConfig = env->FindClass(name_str.c_str());
+    if (BuildConfig == NULL) {
+        BuildConfig = env->FindClass(buildconfig.c_str());
+    }
+    jclass cls_BuildConfig = BuildConfig;
+    if (cls_BuildConfig == NULL) {
+        LOGE("cannot get BuildConfig");
         return nullptr;
     }
-    jfieldID fid_BuildConfig_buildType = env->GetStaticFieldID(cls_BuildConfig, "BUILD_TYPE","Ljava/lang/String;");
-    jstring jBuildType = (jstring) env->GetStaticObjectField(cls_BuildConfig,fid_BuildConfig_buildType);
+    jfieldID fid_BuildConfig_buildType = env->GetStaticFieldID(cls_BuildConfig, "BUILD_TYPE",  "Ljava/lang/String;");
+    jstring jBuildType = (jstring) env->GetStaticObjectField(cls_BuildConfig, fid_BuildConfig_buildType);
 //    env->DeleteLocalRef(application);
 //    env->DeleteLocalRef(context_clz);
 //    env->DeleteLocalRef(package_manager);
@@ -165,13 +195,21 @@ const char *getBuildTypeVaule(JNIEnv *env) {
 }
 
 const char *getBuildflavorVaule(JNIEnv *env) {
-    std::string name_str =initJavaBuildConfig();
-    name_str += ".BuildConfig";
-    std::replace(name_str.begin(), name_str.end(), '.', '/');
-    LOGI("Show Application  PackageName ：%s", name_str.c_str());
-    jclass cls_BuildConfig = env->FindClass(name_str.c_str());
+//    std::string name_str = initJavaBuildConfig();
+//    name_str += ".BuildConfig";
+//    std::replace(name_str.begin(), name_str.end(), '.', '/');
+//    LOGI("Show Application  PackageName ：%s", name_str.c_str());
+    if (buildconfig.empty()) {
+        buildconfig=prepareApplicationBuildConfig();
+    }
+    LOGI("Show Application  PackageName ：%s", buildconfig.c_str());
+//    jclass cls_BuildConfig = env->FindClass(name_str.c_str());
+    if (BuildConfig == NULL) {
+        BuildConfig = env->FindClass(buildconfig.c_str());
+    }
+    jclass cls_BuildConfig = BuildConfig;
     if (cls_BuildConfig == NULL) {
-        LOGE("cannot get BuildConfig" );
+        LOGE("cannot get BuildConfig");
         return nullptr;
     }
     jfieldID fid_BuildConfig_flavor = GetStaticFieldID(env, cls_BuildConfig, "FLAVOR","Ljava/lang/String;");
@@ -182,7 +220,9 @@ const char *getBuildflavorVaule(JNIEnv *env) {
 //    env->DeleteLocalRef(package_name);
 //    env->DeleteLocalRef(cls_BuildConfig);
     if (fid_BuildConfig_flavor != nullptr) {
-        jstring jBuildFlavor = (jstring) env->GetStaticObjectField(cls_BuildConfig, fid_BuildConfig_flavor);
+        jstring
+        jBuildFlavor = (jstring)
+        env->GetStaticObjectField(cls_BuildConfig, fid_BuildConfig_flavor);
 //        env->DeleteLocalRef(jBuildFlavor);//FIXME Hoe release?
         return env->GetStringUTFChars(jBuildFlavor, nullptr);
     } else {
@@ -214,8 +254,11 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
         flavorBuildType = buildFlavor + buildType;
     }
     LOGI("Show now FlavorBuildType is ：%s", flavorBuildType.c_str());
-    prepareSHA();
-    if (verifySignSHA(env,ITYPE) == JNI_OK) {
+    if (AllSHAs.empty()) {
+        AllSHAs = prepareSHA();
+    }
+//    showAllSHA();
+    if (verifySignSHA(env, ITYPE) == JNI_OK) {
         return JNI_VERSION_1_4;
     }
     LOGE("签名不一致!");
@@ -241,7 +284,7 @@ static jobject getApplication(JNIEnv *env) {
     return application;
 }
 
-static int verifySignSHA(JNIEnv *env,char *type) {
+static int verifySignSHA(JNIEnv *env, char *type) {
     // Application object
     jobject application = getApplication(env);
     if (application == NULL) {
@@ -263,7 +306,7 @@ static int verifySignSHA(JNIEnv *env,char *type) {
     jmethodID getPackageName = env->GetMethodID(context_clz, "getPackageName",
                                                 "()Ljava/lang/String;");
     // call getPackageName() and cast from jobject to jstring 获取包名
-    jstring package_name = (jstring) (env->CallObjectMethod(application, getPackageName));
+    jstring package_name = (jstring)(env->CallObjectMethod(application, getPackageName));
     // PackageInfo object 获得应用包的信息
     jobject package_info = env->CallObjectMethod(package_manager, getPackageInfo, package_name, 64);
     // class PackageInfo 获得 PackageInfo 类
@@ -286,7 +329,7 @@ static int verifySignSHA(JNIEnv *env,char *type) {
     jmethodID signature_method_toByteArray = env->GetMethodID(signature_clz, "toByteArray",
                                                               "()[B");
     // call toCharsString()
-    jstring signature_str = (jstring) (env->CallObjectMethod(signature0, toCharsString));
+    jstring signature_str = (jstring)(env->CallObjectMethod(signature0, toCharsString));
 
     jobject signatureBytes = env->CallObjectMethod(signature0, signature_method_toByteArray);
     // 获取InputStream对象
@@ -367,7 +410,7 @@ static int verifySignSHA(JNIEnv *env,char *type) {
         LOGE("分配内存失败");
         return JNI_ERR;
     }
-    const char* match_sha = matchSHAByFlavorBuildType(flavorBuildType.c_str());
+    const char *match_sha = matchSHAByFlavorBuildType(flavorBuildType.c_str());
     //    LOGE("Show match ：%s", match_sha );
 //    LOGI("应用中读取到的签名MessageDigest %s 为：%2s",ITYPE, sign_key_type_sha);
 //    LOGI("native中预置的签名MessageDigest %s 为：%2s",ITYPE,  match_sha);

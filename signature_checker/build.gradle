@@ -88,7 +88,7 @@ android {
                 arguments "-DSALT=\"20221217FIRST_PASS\"",
                         "-DSIGN_SHA_TYPE=\"${APP_SHA_TYPE}\"",
                         "-DSIGN_SHA=\"${APP_SHA_VALUE}\"",
-                        "-DFLAVOR_SHAS=\"${flavor_build_shas}\"",
+                        "-DFLAVOR_SHAS=\"${flavor_build_shas.bytes.encodeBase64().toString()}\"",
                         "-DTO_JNI_PACKAGE=\"${legacy_namespace}\""
             }
         }
