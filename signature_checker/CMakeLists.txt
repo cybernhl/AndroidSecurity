@@ -17,7 +17,8 @@ add_library( # Sets the name of the library.
              SHARED
 
              # Provides a relative path to your source file(s).
-             src/main/cpp/native-security.cpp )
+             src/main/cpp/native-security.cpp
+             src/main/cpp/base64.cpp)
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by
@@ -67,6 +68,6 @@ add_definitions(-DJAVA_BUILDCONFIG_PACKAGE=${TO_JNI_PACKAGE})
 message(WARNING "Show  message ...Get SALT ,${SALT}")
 message(WARNING "Show  message ...Get TYPE ,${SIGN_SHA_TYPE}")
 message(WARNING "Show  message ...Get SHA ,${SIGN_SHA}")
-message(WARNING "Show  message ...Get SHA!! ,${FLAVOR_SHAS}")
+message(WARNING "Show  message ...Get FLAVOR_SHAS ---> ${FLAVOR_SHAS}")
 message(WARNING "Show  message ...Get JAVA_BUILDCONFIG_PACKAGE : ${TO_JNI_PACKAGE}")
 message(WARNING "Show  message ...Get TEST ,${TEST}")
