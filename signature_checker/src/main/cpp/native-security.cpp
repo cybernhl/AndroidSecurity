@@ -46,7 +46,7 @@ static jclass BuildConfig;
 
 std::string prepareApplicationBuildConfig() {
     if (application_namespace.empty()) {
-        application_namespace = initJavaBuildConfig();
+        application_namespace = prepareApplicationNameSpace();
     }
     std::string item = application_namespace;
     item += ".BuildConfig";
